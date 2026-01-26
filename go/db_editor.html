@@ -5,13 +5,12 @@
 <meta charset="utf-8"/>
 <meta http-equiv="x-ua-compatible" content="ie=edge"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Contact Form - Aiw Boo</title>
-<meta name="description" content="Hello Aiw! Contact form this Website."/>
-<meta name="keywords" content="contact form"/>
+<title>Editor - Aiw Boo</title>
+<meta name="description" content="This Editor."/>
+<meta name="keywords" content="editor aiw"/>
 <meta name="author" content="AIW"/>
 <!-- meta robots -->
-<meta name="robots" content="noindex, nofollow"/>
-<link rel="canonical" href="https://aiw.boo/contact-form.html"/>
+<link rel="canonical" href="https://aiw.boo/go/db_editor.html"/>
 <!-- MOBILE -->
 <meta name="format-detection" content="telephone=no"/>
 <meta name="theme-color" content="#060707"/>
@@ -34,10 +33,10 @@
 <meta name="msapplication-TileImage" content="/img/favicon/ms-icon-144x144.png"/>
 <meta name="msapplication-config" content="/browserconfig.xml"/>
 <!-- OPEN GRAPH (Facebook, WhatsApp, LinkedIn) -->
-<meta property="og:title" content="Contact Form - Aiw Boo"/>
-<meta property="og:description" content="Hello Aiw! Contact form this Website."/>
+<meta property="og:title" content="Editor - Aiw Boo"/>
+<meta property="og:description" content="This Editor."/>
 <meta property="og:type" content="website"/>
-<meta property="og:url" content="https://aiw.boo/contact.html"/>
+<meta property="og:url" content="https://aiw.boo/go/db_editor.html"/>
 <meta property="og:image" content="/app/img/logo-aiw.png"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
@@ -45,8 +44,8 @@
 <meta property="og:locale" content="id_ID"/>
 <!-- TWITTER CARD -->
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="Contact Form- Aiw Boo"/>
-<meta name="twitter:description" content="Hello Aiw! Contact form this Website."/>
+<meta name="twitter:title" content="About - Aiw Boo"/>
+<meta name="twitter:description" content="This Editor."/>
 <meta name="twitter:image" content="/app/img/logo-aiw.png"/>
 <meta name="twitter:site" content="@aiw.boo"/>
 <!-- PERFORMANCE / PRECONNECT -->
@@ -96,8 +95,8 @@
 {
 "@type": "ListItem",
 "position": 2,
-"name": "Contact",
-"item": "https://aiw.boo/contact-form.html"
+"name": "About",
+"item": "https://aiw.boo/go/db_editor.html"
 }
 ]
 }
@@ -461,56 +460,7 @@
 </svg>
 <!-- - Curtain shape holder-->
 </div>
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
-  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyD4ASe77OXv6zovqf4kIF_LRJTcA5GRUcw",
-    authDomain: "app-aiw.firebaseapp.com",
-    projectId: "app-aiw",
-    storageBucket: "app-aiw.firebasestorage.app",
-    messagingSenderId: "642332747910",
-    appId: "1:642332747910:web:71d73170364775d1e44907",
-    measurementId: "G-QKV9BDSPJW"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-  const db = getFirestore(app);
-
-  const form = document.getElementById("con___tact");
-  if(form){
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const nameInput = form.querySelector('[name="visitor_name"]');
-      const emailInput = form.querySelector('[name="visitor_email"]');
-      const messageInput = form.querySelector('[name="visitor_msg"]');
-      const terms = form.querySelector('[name="terms_agreed"]');
-
-      const name = nameInput ? nameInput.value.trim() : '';
-      const email = emailInput ? emailInput.value.trim() : '';
-      const message = messageInput ? messageInput.value.trim() : '';
-
-      if(!name || !email || !message) return;
-      if(terms && !terms.checked) return;
-
-      try {
-        await addDoc(collection(db, "contacts"), {
-          name,
-          email,
-          message,
-          timestamp: new Date()
-        });
-        form.reset();
-      } catch(err) {
-        console.error(err);
-      }
-    });
-  }
-</script>
 
 <!-- TEMPLATE SCRIPTS -->
 <script src="../js/vendor.js"></script>
