@@ -390,19 +390,19 @@ window.app = {
 	components: {
 		'Preloader': {
 			dependencies: [],
-			file: './components/Preloader.js'
+			file: 'https://studio.aiw.boo/index/js/components/Preloader.js'
 		},
 		'Header': {
 			dependencies: ['arts-header'],
-			file: './components/Header.js'
+			file: 'https://studio.aiw.boo/index/js/components/Header.js'
 		},
 		'MenuOverlay': {
 			dependencies: ['arts-infinite-list'],
-			file: './components/MenuOverlay.js'
+			file: 'https://studio.aiw.boo/index/js/components/MenuOverlay.js'
 		},
 		'MenuClassic': {
 			dependencies: [],
-			file: './components/MenuClassic.js'
+			file: 'https://studio.aiw.boo/index/js/components/MenuClassic.js'
 		},
 		'SliderFullpageBackgroundsMask': {
 			dependencies: ['arts-fullpage-slider'],
@@ -411,7 +411,7 @@ window.app = {
 				src: 'https://studio.aiw.boo/index/js/components/SliderFullpageBase.js',
 				id: 'slider-fullpage-base-js'
 			}],
-			file: './components/SliderFullpageBackgroundsMask.js'
+			file: 'https://studio.aiw.boo/index/js/components/SliderFullpageBackgroundsMask.js'
 		},
 		'SliderFullpageBackgroundsSlide': {
 			dependencies: ['arts-fullpage-slider'],
@@ -420,7 +420,7 @@ window.app = {
 				src: 'https://studio.aiw.boo/index/js/components/SliderFullpageBase.js',
 				id: 'slider-fullpage-base-js'
 			}],
-			file: './components/SliderFullpageBackgroundsSlide.js'
+			file: 'https://studio.aiw.boo/index/js/components/SliderFullpageBackgroundsSlide.js'
 		},
 		'SliderTestimonials': {
 			dependencies: ['arts-fullpage-slider'],
