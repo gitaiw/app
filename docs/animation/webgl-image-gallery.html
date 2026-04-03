@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Scroll Infinite Grid Image Distortion | Dev Aiw</title>
+  <meta name="description" content="Infinite scrolling WebGL gallery with image distortion effect. Events click link and no Link" />
+    <style>
+        body { margin: 0; overflow: hidden; background: #111; }
+        canvas { display: block; }
+        #image-list { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="image-list"><!--no link -->
+    <img data-img-klik="" src="___cdn/app/img/example-1.jpg">
+    <img data-img-klik="" src="___cdn/app/img/example-2.jpg">
+    <img data-img-klik="" src="___cdn/app/img/example-3.jpg">
+    <img data-img-klik="" src="___cdn/app/img/example-2.jpg">
+    <img data-img-klik="" src="___cdn/app/img/example-1.jpg">
+</div>
+
+<script src="___cdn/app/js/vendor.js"></script>
+
+<script>
+// ================= CONFIG =================
+const TILE_SIZE = 3;
+const GAP = 0.5;
+const COLUMNS = 10;
+const ROWS = 10;
+const TILE_FULL = TILE_SIZE + GAP;
+const GRID_WIDTH = COLUMNS * TILE_FULL;
+const GRID_HEIGHT = ROWS * TILE_FULL;
+
+let isTransitioning = false;
+let transitionProgress = 0;
+let targetLink = "";
+let clickedMesh = null;
+
+// ================= SCENE =================
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.z = 12;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
+
+const clock = new THREE.Clock();
+
+// ================= LOAD IMAGES =================
+const loader = new THREE.TextureLoader();
+const imageElements = document.querySelectorAll('#image-list img');
+const images = Array.from(imageElements).map(img => img.src);
+const links = Array.from(imageElements).map(img => img.dataset.imgKlik || null);
+
+const tiles = [];
+
+// ================= CREATE GRID =================
+for(let i=0; i<COLUMNS; i++){
+  for(let j=0; j<ROWS; j++){
+    const index = Math.abs((i * 7 + j * 13)) % images.length;
+    const texture = loader.load(images[index]);
+
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uTexture: { value: texture },
+        uTime: { value: 0 },
+        uScrollStrength: { value: 0 },
+        uScrollDir: { value: new THREE.Vector2(0, 0) },
+        uTransitionProgress: { value: 0 },
+        uIsTarget: { value: 0.0 }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        uniform float uTime;
+        uniform float uScrollStrength;
+        uniform vec2 uScrollDir;
+        uniform float uTransitionProgress;
+        uniform float uIsTarget;
+
+        #define PI 3.1415926535897932384626433832795
+
+        void main() {
+          vUv = uv;
+          vec3 pos = position;
+
+          float wave = sin(pos.x * 1.5 + uTime) * cos(pos.y * 1.5 + uTime);
+          pos.z += wave * uScrollStrength * 0.3;
+
+          float dist = distance(uv, vec2(0.5));
+          pos.z -= dist * uScrollStrength * 1.5;
+
+          pos.x += sin(uv.y * PI) * uScrollDir.x * uScrollStrength * 0.2;
+          pos.y += sin(uv.x * PI) * uScrollDir.y * uScrollStrength * 0.2;
+
+          if(uIsTarget > 0.5) {
+            float clickWave = sin(dist * 20.0 - uTransitionProgress * 15.0);
+            float pushZ = sin(uTransitionProgress * PI); 
+            pos.z += (clickWave * 1.2 + 2.5) * pushZ;
+          }
+
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D uTexture;
+        varying vec2 vUv;
+        void main() {
+          gl_FragColor = texture2D(uTexture, vUv);
+        }
+      `
+    });
+
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE, 64, 64),
+      material
+    );
+
+    const x = (i - COLUMNS/2) * TILE_FULL;
+    const y = (j - ROWS/2) * TILE_FULL;
+    mesh.position.set(x, y, 0);
+    scene.add(mesh);
+    
+    tiles.push({ 
+      mesh, 
+      baseX: x, 
+      baseY: y, 
+      link: links[index] 
+    });
+  }
+}
+
+// ================= SCROLL LOGIC =================
+let scroll = { current: { x: 0, y: 0 }, target: { x: 0, y: 0 }, ease: 0.05 };
+let lastPos = { x: 0, y: 0 }, isDragging = false;
+let scrollDir = new THREE.Vector2(0, 0);
+let velocity = 0;
+
+const getPos = e => e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+
+const onDown = e => { if(!isTransitioning) { isDragging = true; lastPos = getPos(e); } };
+const onUp = () => { isDragging = false; };
+
+const onMove = e => {
+  if(!isDragging || isTransitioning) return;
+  const pos = getPos(e);
+  const dx = (pos.x - lastPos.x) * 0.02;
+  const dy = (pos.y - lastPos.y) * 0.02;
+  
+  scroll.target.x += dx;
+  scroll.target.y -= dy;
+  
+  scrollDir.x = dx;
+  scrollDir.y = dy;
+  lastPos = pos;
+};
+
+window.addEventListener('mousedown', onDown);
+window.addEventListener('mousemove', onMove);
+window.addEventListener('mouseup', onUp);
+window.addEventListener('touchstart', onDown);
+window.addEventListener('touchmove', onMove);
+window.addEventListener('touchend', onUp);
+
+window.addEventListener('wheel', e => {
+  if(isTransitioning) return;
+  const dx = -e.deltaX * 0.01;
+  const dy = e.deltaY * 0.01;
+  scroll.target.x += dx;
+  scroll.target.y += dy;
+  scrollDir.set(dx, dy);
+});
+
+function wrap(val, min, max) {
+  const range = max - min;
+  return ((((val - min) % range) + range) % range) + min;
+}
+
+// ================= RESET FUNCTION =================
+function resetTransition() {
+  isTransitioning = false;
+  transitionProgress = 0;
+  
+  if (clickedMesh) {
+    clickedMesh.material.uniforms.uIsTarget.value = 0.0;
+    clickedMesh.scale.set(1, 1, 1);
+    clickedMesh.position.z = 0;
+    clickedMesh = null;
+  }
+
+  tiles.forEach(t => {
+    t.mesh.visible = true;
+  });
+  
+  targetLink = "";
+}
+
+// ================= ANIMATE LOOP =================
+let time = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.1);
+  time += 0.03;
+
+  const fovRad = (camera.fov * Math.PI) / 180;
+  const viewportHeight = 2 * Math.tan(fovRad / 2) * camera.position.z;
+  const viewportWidth = viewportHeight * camera.aspect;
+  scroll.current.x += (scroll.target.x - scroll.current.x) * scroll.ease;
+  scroll.current.y += (scroll.target.y - scroll.current.y) * scroll.ease;
+
+  const deltaX = scroll.target.x - scroll.current.x;
+  const deltaY = scroll.target.y - scroll.current.y;
+  velocity = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+  if (isTransitioning) {
+    transitionProgress += (1.0 - transitionProgress) * (1.5 * dt);
+    
+    if (transitionProgress > 0.99) {
+      transitionProgress = 1.0;
+      if (targetLink && targetLink !== "") {
+        window.location.href = targetLink;
+      }
+    }
+  }
+
+  tiles.forEach(t => {
+    if (!isTransitioning || t.mesh !== clickedMesh) {
+      t.mesh.position.x = wrap(t.baseX + scroll.current.x, -GRID_WIDTH/2, GRID_WIDTH/2);
+      t.mesh.position.y = wrap(t.baseY + scroll.current.y, -GRID_HEIGHT/2, GRID_HEIGHT/2);
+
+      if (isTransitioning) t.mesh.visible = false;
+
+      t.mesh.material.uniforms.uScrollStrength.value = THREE.MathUtils.lerp(
+        t.mesh.material.uniforms.uScrollStrength.value,
+        velocity * 0.2,
+        0.1
+      );
+    } else {
+
+      t.mesh.position.x = THREE.MathUtils.lerp(t.mesh.position.x, 0, 2.5 * dt);
+      t.mesh.position.y = THREE.MathUtils.lerp(t.mesh.position.y, 0, 2.5 * dt);
+      t.mesh.position.z = THREE.MathUtils.lerp(t.mesh.position.z, 2, 2.5 * dt);
+      t.mesh.material.uniforms.uScrollStrength.value = THREE.MathUtils.lerp(
+        t.mesh.material.uniforms.uScrollStrength.value,
+        1.5, 
+        2.0 * dt
+      );
+
+      const tex = t.mesh.material.uniforms.uTexture.value;
+      const imageAspect = (tex.image) ? tex.image.width / tex.image.height : 1;
+      const screenAspect = viewportWidth / viewportHeight;
+
+      let targetScaleX, targetScaleY;
+
+      if (targetLink && targetLink !== "") {
+
+        const coverScale = Math.max(viewportWidth / TILE_SIZE, viewportHeight / TILE_SIZE);
+        targetScaleX = coverScale;
+        targetScaleY = coverScale;
+      } else {
+
+        if (imageAspect > screenAspect) {
+          targetScaleX = viewportWidth / TILE_SIZE;
+          targetScaleY = (viewportWidth / imageAspect) / TILE_SIZE;
+        } else {
+          targetScaleY = viewportHeight / TILE_SIZE;
+          targetScaleX = (viewportHeight * imageAspect) / TILE_SIZE;
+        }
+      }
+
+      t.mesh.scale.set(
+        THREE.MathUtils.lerp(1, targetScaleX, transitionProgress),
+        THREE.MathUtils.lerp(1, targetScaleY, transitionProgress),
+        1
+      );
+    }
+
+    t.mesh.material.uniforms.uTime.value = time;
+    t.mesh.material.uniforms.uScrollDir.value.copy(scrollDir);
+    t.mesh.material.uniforms.uTransitionProgress.value = transitionProgress;
+  });
+
+  renderer.render(scene, camera);
+  scrollDir.multiplyScalar(0.9);
+}
+
+animate();
+
+// ================= RAYCASTER KLIK =================
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+window.addEventListener('click', (event) => {
+
+  if (isTransitioning) {
+    resetTransition();
+
+    velocity = 0;
+    scrollDir.set(0, 0);
+    scroll.target.x = scroll.current.x;
+    scroll.target.y = scroll.current.y;
+    return;
+  }
+
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(tiles.map(t => t.mesh));
+
+  if (intersects.length > 0) {
+    const mesh = intersects[0].object;
+    const tile = tiles.find(t => t.mesh === mesh);
+
+    if (!tile) return;
+
+    clickedMesh = mesh;
+    mesh.material.uniforms.uIsTarget.value = 1.0;
+    isTransitioning = true;
+    transitionProgress = 0;
+    targetLink = tile.link || "";
+
+    velocity = 0;
+    scrollDir.set(0, 0);
+    scroll.target.x = scroll.current.x;
+    scroll.target.y = scroll.current.y;
+
+    clickedMesh.material.uniforms.uScrollStrength.value = 0.8;
+  }
+});
+
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+</script>
+
+
+</body>
+</html>
